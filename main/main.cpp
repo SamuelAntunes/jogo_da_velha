@@ -1,256 +1,458 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string>
 #include <iostream>
+#include <cstdlib>
+#include <string>
+#include <limits>
+#include <ctime>   // Para srand() e time()
+
+#ifdef _WIN32
+    #include <windows.h>   // Para Sleep()
+#else
+    #include <unistd.h>    // Para usleep()
+#endif
 
 using namespace std;
 
-//¡rea de definiÁ„o de cabeÁalhos de funÁ„o
-void menuInicial();
+// ===================
+// C√≥digos de cores ANSI
+// ===================
+#ifndef _WIN32
+    #define RESET   "\033[0m"
+    #define RED     "\033[31m"
+    #define GREEN   "\033[32m"
+    #define YELLOW  "\033[33m"
+    #define BLUE    "\033[34m"
+    #define MAGENTA "\033[35m"
+    #define CYAN    "\033[36m"
+#else
+    // Se o terminal do Windows n√£o suportar cores ANSI, pode deix√°-las vazias.
+    #define RESET   ""
+    #define RED     ""
+    #define GREEN   ""
+    #define YELLOW  ""
+    #define BLUE    ""
+    #define MAGENTA ""
+    #define CYAN    ""
+#endif
 
-void limpaTela(){
-    system("CLS");
+// ===================
+// Fun√ß√µes Auxiliares
+// ===================
+
+// Limpa a tela (compat√≠vel com Windows e Unix-like)
+void clearScreen() {
+    #ifdef _WIN32
+        system("CLS");
+    #else
+        system("clear");
+    #endif
 }
 
-void iniciaTabuleiro(char tabuleiro[3][3]){
+// Aguarda que o usu√°rio pressione ENTER
+void waitForEnter() {
+    cout << "\nPressione ENTER para continuar...";
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+    cin.get();
+}
 
-    //Navega por cada posiÁ„o do tabuleiro e coloca o sÌmbolo de '-'
-    int linha,coluna;
-    for(linha = 0; linha < 3; linha++){
-        for(coluna = 0; coluna < 3; coluna++){
-            tabuleiro[linha][coluna] = '-';
+// Pausa a execu√ß√£o por um determinado n√∫mero de milissegundos.
+// Em Windows, usamos Sleep(ms); em Unix-like, usleep(ms * 1000);
+void delay(int ms) {
+    #ifdef _WIN32
+        Sleep(ms);
+    #else
+        usleep(ms * 1000); // usleep espera microsegundos
+    #endif
+}
+
+// Exibe uma splash screen animada
+void splashScreen() {
+    clearScreen();
+    cout << "\n\n";
+    cout << "      #####################################################\n";
+    cout << "      #                                                   #\n";
+    cout << "      #             BEM VINDO AO JOGO DA VELHA            #\n";
+    cout << "      #                                                   #\n";
+    cout << "      #####################################################\n\n";
+    delay(2000); // Pausa de 2 segundos
+}
+
+// Exibe um cabe√ßalho para as telas do jogo
+void printHeader() {
+    cout << "=====================================================\n";
+    cout << "               JOGO DA VELHA - BATALHA               \n";
+    cout << "=====================================================\n\n";
+}
+
+// ===================
+// Fun√ß√µes do Jogo
+// ===================
+
+// Inicializa o tabuleiro com o caractere '-' para indicar posi√ß√£o vazia
+void initializeBoard(char board[3][3]) {
+    for (int i = 0; i < 3; i++){
+        for (int j = 0; j < 3; j++){
+            board[i][j] = '-';
         }
     }
-
 }
 
-void exibeTabuleiro (char tabuleiro[3][3]){
-
-     //Exibe o tabuleiro com suas linhas e colunas quebrando a linha ao sair de um for
-    int linha,coluna;
+// Exibe o tabuleiro com uma grade ASCII aprimorada e cores
+void printBoard(char board[3][3]) {
     cout << "\n";
-    for(linha = 0; linha < 3; linha++){
-        for(coluna = 0; coluna < 3; coluna++){
-            cout << tabuleiro[linha][coluna];
+    for (int i = 0; i < 3; i++){
+        cout << "      ";
+        for (int j = 0; j < 3; j++){
+            char cell = board[i][j];
+            if(cell == 'X')
+                cout << RED << cell << RESET;
+            else if(cell == 'O')
+                cout << GREEN << cell << RESET;
+            else
+                cout << YELLOW << cell << RESET;
+            
+            if(j < 2)
+                cout << " | ";
         }
         cout << "\n";
+        if(i < 2)
+            cout << "     ---+---+---\n";
     }
-
 }
 
-//1 = X venceu, 2 = O venceu, 0 = Nada Aconteceu
-int confereTabuleiro(char tabuleiro[3][3]){
-
-        int linha, coluna;
-
-        //Confere linhas
-        for(linha = 0; linha < 3; linha++){
-            if(tabuleiro[linha][0] == 'X' && tabuleiro[linha][0] == tabuleiro[linha][1] && tabuleiro[linha][1] == tabuleiro[linha][2]){
-                return 1;
-            }else if(tabuleiro[linha][0] == 'O' && tabuleiro[linha][0] == tabuleiro[linha][1] && tabuleiro[linha][1] == tabuleiro[linha][2]){
-                return 2;
-            }
-        }
-
-        //Confere Colunas
-        for(coluna = 0; coluna < 3; coluna++){
-            if(tabuleiro[0][coluna] == 'X' && tabuleiro[0][coluna] == tabuleiro[1][coluna] && tabuleiro[1][coluna] == tabuleiro[2][coluna]){
-                return 1;
-            }else if(tabuleiro[0][coluna] == 'O' && tabuleiro[0][coluna] == tabuleiro[1][coluna] && tabuleiro[1][coluna] == tabuleiro[2][coluna]){
-                return 2;
-            }
-        }
-
-        //Diagonal Principal
-        if(tabuleiro[0][0] != '-' && tabuleiro[0][0] == tabuleiro[1][1] && tabuleiro[1][1] == tabuleiro[2][2]){
-
-            if(tabuleiro[0][0] == 'X'){
-               return 1;
-            }else{
-               return 2;
-            }
-        }
-
-        //Diagonal Secund·ria
-        if(tabuleiro[0][2] != '-' && tabuleiro[0][2] == tabuleiro[1][1] && tabuleiro[1][1] == tabuleiro[2][0]){
-
-            if(tabuleiro[0][2] == 'X'){
-                return 1;
-            }else{
-               return 2;
-            }
-        }
-
-        return 0;
+// Exibe um mapa de posi√ß√µes para auxiliar os jogadores
+void printPositionMap() {
+    cout << "\n      MAPA DE POSICOES:\n";
+    cout << "      7 | 8 | 9 \n";
+    cout << "     ---+---+---\n";
+    cout << "      4 | 5 | 6 \n";
+    cout << "     ---+---+---\n";
+    cout << "      1 | 2 | 3 \n";
 }
 
-
-void exibeInstrucoes(){
-
-    cout << "\nMapa de Posicoes:";
-    cout << "\n 7 | 8 | 9";
-    cout << "\n 4 | 5 | 6";
-    cout << "\n 1 | 2 | 3";
-
+// Verifica se h√° vencedor no tabuleiro.
+// Retorna 1 se 'X' venceu, 2 se 'O' venceu, ou 0 se n√£o houver vencedor.
+int checkWinner(char board[3][3]) {
+    // Verifica linhas
+    for (int i = 0; i < 3; i++){
+        if(board[i][0] != '-' && board[i][0] == board[i][1] && board[i][1] == board[i][2]){
+            return (board[i][0] == 'X') ? 1 : 2;
+        }
+    }
+    // Verifica colunas
+    for (int j = 0; j < 3; j++){
+        if(board[0][j] != '-' && board[0][j] == board[1][j] && board[1][j] == board[2][j]){
+            return (board[0][j] == 'X') ? 1 : 2;
+        }
+    }
+    // Verifica diagonais
+    if(board[0][0] != '-' && board[0][0] == board[1][1] && board[1][1] == board[2][2])
+        return (board[0][0] == 'X') ? 1 : 2;
+    if(board[0][2] != '-' && board[0][2] == board[1][1] && board[1][1] == board[2][0])
+        return (board[0][2] == 'X') ? 1 : 2;
+    
+    return 0;
 }
 
-void jogo(string nomeDoJogadorUm, string nomeDoJogadorDois, int pontuacaoJogadorUm, int pontuacaoJogadorDois){
+// Exibe um banner de vit√≥ria com uma apar√™ncia chamativa
+void printVictoryBanner(const string &player, char symbol) {
+    cout << "\n****************************************\n";
+    cout << "*                                      *\n";
+    cout << "*          VENCEDOR: " << player << " (" << symbol << ")          *\n";
+    cout << "*                                      *\n";
+    cout << "****************************************\n";
+}
 
-    ///Vari·veis Gerais
-    string nomeDoJogadorAtual;//Nomes dos jogadores
-    char tabuleiro[3][3];                                       //Tabuleiro do Jogo
-    int linha,coluna;                                           //Auxiliares para tabuleiro
-    int linhaJogada,colunaJogada,posicaoJogada;                 //PosiÁ„o em que o jogador posiciona sua marca
-    int estadoDeJogo = 1;                                       //0 = Sem jogo,1 = Em Jogo
-    int turnoDoJogador = 1;                                     //1 = X, 2 = O
-    int rodada = 0;                                             //Quantas vezes os jogadores jogaram no total
-    int opcao;                                                  //OpÁ„o de reinÌcio
-    bool posicionouJogada;                                      //Verifica se o jogador colocou um marcador no tabuleiro
+// ===================
+// Intelig√™ncia Artificial (Modo Solo)
+// ===================
 
-    //Coloca os '-' no tabuleiro para indicar o vazio
-    iniciaTabuleiro(tabuleiro);
+// Fun√ß√£o auxiliar: testa se uma posi√ß√£o vazia pode levar √† vit√≥ria para um dado s√≠mbolo
+bool testMove(char board[3][3], int row, int col, char symbol) {
+    board[row][col] = symbol;
+    int res = checkWinner(board);
+    board[row][col] = '-';
+    if (symbol == 'O' && res == 2) return true;
+    if (symbol == 'X' && res == 1) return true;
+    return false;
+}
 
-    while(rodada < 9 && estadoDeJogo == 1){
-
-        limpaTela();
-
-        cout << "\nRodada:" << rodada << "\n";
-        cout << "Pontuacao:" << nomeDoJogadorUm << " " << pontuacaoJogadorUm << " x " << pontuacaoJogadorDois << " " << nomeDoJogadorDois;
-
-        //Exibe o tabuleiro na tela
-        exibeTabuleiro(tabuleiro);
-
-        //Exibe qual numero corresponde a qual posicao
-        exibeInstrucoes();
-
-
-        //Atualiza o nome do jogador atual
-        if(turnoDoJogador == 1){
-
-            nomeDoJogadorAtual = nomeDoJogadorUm;
-
-        }else{
-
-            nomeDoJogadorAtual = nomeDoJogadorDois;
-
+// Fun√ß√£o que retorna a posi√ß√£o (1 a 9) escolhida pela m√°quina
+int getComputerMove(char board[3][3], int posMapping[9][2]) {
+    // 1. Tenta encontrar um movimento vencedor (jogar com 'O')
+    for (int pos = 1; pos <= 9; pos++) {
+        int row = posMapping[pos - 1][0];
+        int col = posMapping[pos - 1][1];
+        if(board[row][col] == '-' && testMove(board, row, col, 'O')) {
+            return pos;
         }
+    }
+    // 2. Tenta bloquear a vit√≥ria do jogador (jogar com 'X')
+    for (int pos = 1; pos <= 9; pos++) {
+        int row = posMapping[pos - 1][0];
+        int col = posMapping[pos - 1][1];
+        if(board[row][col] == '-' && testMove(board, row, col, 'X')) {
+            return pos;
+        }
+    }
+    // 3. Se o centro estiver livre (posi√ß√£o 5 -> √≠ndice 4)
+    if(board[1][1] == '-') return 5;
+    // 4. Escolhe um dos cantos, se dispon√≠vel (posi√ß√µes 1, 3, 7, 9)
+    int corners[4] = {1, 3, 7, 9};
+    for (int i = 0; i < 4; i++){
+        int pos = corners[i];
+        int row = posMapping[pos - 1][0];
+        int col = posMapping[pos - 1][1];
+        if(board[row][col] == '-') return pos;
+    }
+    // 5. Caso contr√°rio, escolhe aleatoriamente dentre as posi√ß√µes vazias
+    int available[9], count = 0;
+    for (int pos = 1; pos <= 9; pos++){
+        int row = posMapping[pos - 1][0];
+        int col = posMapping[pos - 1][1];
+        if(board[row][col] == '-') {
+            available[count++] = pos;
+        }
+    }
+    if(count > 0) {
+        int index = rand() % count;
+        return available[index];
+    }
+    return 0;
+}
 
-        posicionouJogada = false;
+// ===================
+// Modo Multiplayer (dois jogadores)
+// ===================
 
-        //Matriz de posicoes possÌveis
-        int posicoes[9][2] = {{2,0},{2,1},{2,2},{1,0},{1,1},{1,2},{0,0},{0,1},{0,2}};
-
-        while(posicionouJogada == false){
-
-            //LÍ a jogada
-            cout << "\n" << nomeDoJogadorAtual << "Digite uma posicao conforme o mapa acima:";
-            cin >> posicaoJogada;
-
-            //Passa a linha e coluna de acordo com a matriz de posiÁıes exibida no mapa
-            linhaJogada = posicoes[posicaoJogada-1][0];
-            colunaJogada = posicoes[posicaoJogada-1][1];
-
-            //Verifica se a posiÁ„o È vazia
-            if(tabuleiro[linhaJogada][colunaJogada] == '-'){
-
-                //Conseguiu posicionar um marcador
-                posicionouJogada = true;
-
-                //Verifica de quem È a vez para posicionar o marcador
-                if(turnoDoJogador == 1){
-
-                    tabuleiro[linhaJogada][colunaJogada] = 'X';
-
-                    turnoDoJogador = 2;
-
-                }else{
-
-                    tabuleiro[linhaJogada][colunaJogada] = 'O';
-
-                    turnoDoJogador = 1;
-
+void playGame(const string &player1, const string &player2, int &score1, int &score2) {
+    char board[3][3];
+    initializeBoard(board);
+    int turn = 1;       // 1 para player1 (X), 2 para player2 (O)
+    int moves = 0;
+    int winner = 0;
+    
+    // Mapeamento das posi√ß√µes (1 a 9) para as coordenadas da matriz:
+    // 1 -> (2,0), 2 -> (2,1), 3 -> (2,2),
+    // 4 -> (1,0), 5 -> (1,1), 6 -> (1,2),
+    // 7 -> (0,0), 8 -> (0,1), 9 -> (0,2)
+    int posMapping[9][2] = {
+        {2, 0}, {2, 1}, {2, 2},
+        {1, 0}, {1, 1}, {1, 2},
+        {0, 0}, {0, 1}, {0, 2}
+    };
+    
+    while(moves < 9 && winner == 0) {
+        clearScreen();
+        printHeader();
+        cout << "Pontuacao: " << BLUE << player1 << " (X): " << score1 << RESET 
+             << "  vs  " << MAGENTA << player2 << " (O): " << score2 << RESET << "\n";
+        cout << "\nJogada " << moves + 1 << "\n";
+        printBoard(board);
+        printPositionMap();
+        
+        string currentPlayer = (turn == 1) ? player1 : player2;
+        char symbol = (turn == 1) ? 'X' : 'O';
+        
+        int pos;
+        bool valid = false;
+        while(!valid) {
+            cout << "\n" << currentPlayer << " (" << ((symbol == 'X') ? RED : GREEN) << symbol << RESET 
+                 << "), escolha uma posicao (1-9): ";
+            cin >> pos;
+            
+            if(cin.fail() || pos < 1 || pos > 9) {
+                cin.clear();
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                cout << "Entrada invalida. Tente novamente.\n";
+            } else {
+                int row = posMapping[pos - 1][0];
+                int col = posMapping[pos - 1][1];
+                if(board[row][col] != '-') {
+                    cout << "Posicao ja ocupada. Escolha outra.\n";
+                } else {
+                    board[row][col] = symbol;
+                    valid = true;
                 }
-
             }
-
         }
-
-        //Confere se o jogo acabou
-        if(confereTabuleiro(tabuleiro) == 1){
-            cout << "O jogador X venceu";
-            pontuacaoJogadorUm++;
-            estadoDeJogo = 0;
-        }else if(confereTabuleiro(tabuleiro) == 2){
-            cout << "O jogador O venceu";
-            pontuacaoJogadorDois++;
-            estadoDeJogo = 0;
-        }
-
-        //Aumenta uma rodada
-        rodada++;
-
+        
+        moves++;
+        winner = checkWinner(board);
+        turn = (turn == 1) ? 2 : 1;
     }
-
-    exibeTabuleiro(tabuleiro);
-    cout << "Fim de jogo";
-    cout << "\nO que deseja fazer?";
-    cout << "\n1-Continuar Jogando";
-    cout << "\n2-Menu Inicial";
-    cout << "\n3-Sair";
-    cin >> opcao;
-    if(opcao == 1){
-        jogo(nomeDoJogadorUm, nomeDoJogadorDois,pontuacaoJogadorUm,pontuacaoJogadorDois);
-    }else if(opcao == 2){
-        menuInicial();
+    
+    clearScreen();
+    printHeader();
+    printBoard(board);
+    if(winner == 1) {
+        cout << "\n" << player1 << " (X) venceu a partida!\n";
+        score1++;
+        printVictoryBanner(player1, 'X');
+    } else if(winner == 2) {
+        cout << "\n" << player2 << " (O) venceu a partida!\n";
+        score2++;
+        printVictoryBanner(player2, 'O');
+    } else {
+        cout << "\nEmpate!\n";
     }
-
+    
+    cout << "\nPontuacao Atual: " << BLUE << player1 << " (X): " << score1 << RESET 
+         << "  vs  " << MAGENTA << player2 << " (O): " << score2 << RESET << "\n";
+    waitForEnter();
 }
 
-void menuInicial(){
+// ===================
+// Modo Solo (jogador vs. m√°quina)
+// ===================
 
-    //OpÁ„o escolhida pelo usu·rio
-    int opcao = 0;
-
-    //Nome dos jogadores
-    string nomeDoJogadorUm, nomeDoJogadorDois;
-
-    //Enquanto o jogador n„o digita uma opcao v·lida, mostra o menu novamente
-    while(opcao < 1 || opcao > 3){
-        limpaTela();
-        cout << "Bem vindo ao Jogo da Velha";
-        cout << "\n1 - Jogar";
-        cout << "\n2 - Sobre";
-        cout << "\n3 - Sair";
-        cout << "\nEscolha uma opcao e tecle ENTER:";
-
-        //Faz a leitura da opcao
-        cin >> opcao;
-
-        //Faz algo de acordo com a opcao escolhida
-        switch(opcao){
-            case 1:
-                //Inicia o jogo
-                //cout << "Jogo iniciado";
-                cout << "Digite o nome do jogador 1:";
-                cin >> nomeDoJogadorUm;
-                cout << "Digite o nome do jogador 2:";
-                cin >> nomeDoJogadorDois;
-                jogo(nomeDoJogadorUm, nomeDoJogadorDois,0,0);
-                break;
-            case 2:
-                //Mostra informacoes do Jogo
-                cout << "Informacoes do jogo";
-                break;
-            case 3:
-                cout << "Ate mais!";
-                break;
+void playGameSolo(const string &player, int &playerScore, int &machineScore) {
+    char board[3][3];
+    initializeBoard(board);
+    int turn = 1;       // 1 para o jogador (X), 2 para a m√°quina (O)
+    int moves = 0;
+    int winner = 0;
+    
+    // Mapeamento das posi√ß√µes (1 a 9) para as coordenadas da matriz:
+    int posMapping[9][2] = {
+        {2, 0}, {2, 1}, {2, 2},
+        {1, 0}, {1, 1}, {1, 2},
+        {0, 0}, {0, 1}, {0, 2}
+    };
+    
+    while(moves < 9 && winner == 0) {
+        clearScreen();
+        printHeader();
+        cout << "Pontuacao: " << BLUE << player << " (X): " << playerScore << RESET 
+             << "  vs  " << MAGENTA << "Maquina" << " (O): " << machineScore << RESET << "\n";
+        cout << "\nJogada " << moves + 1 << "\n";
+        printBoard(board);
+        printPositionMap();
+        
+        if(turn == 1) {
+            // Turno do jogador
+            int pos;
+            bool valid = false;
+            while(!valid) {
+                cout << "\n" << player << " (X), escolha uma posicao (1-9): ";
+                cin >> pos;
+                if(cin.fail() || pos < 1 || pos > 9) {
+                    cin.clear();
+                    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                    cout << "Entrada invalida. Tente novamente.\n";
+                } else {
+                    int row = posMapping[pos - 1][0];
+                    int col = posMapping[pos - 1][1];
+                    if(board[row][col] != '-') {
+                        cout << "Posicao ja ocupada. Escolha outra.\n";
+                    } else {
+                        board[row][col] = 'X';
+                        valid = true;
+                    }
+                }
+            }
+        } else {
+            // Turno da m√°quina
+            cout << "\nA maquina esta jogando...\n";
+            delay(1000); // Aguarda 1 segundo para simular "pensamento"
+            int compPos = getComputerMove(board, posMapping);
+            int row = posMapping[compPos - 1][0];
+            int col = posMapping[compPos - 1][1];
+            board[row][col] = 'O';
+            cout << "\nA maquina escolheu a posicao " << compPos << ".\n";
+            delay(1000);
         }
+        
+        moves++;
+        winner = checkWinner(board);
+        turn = (turn == 1) ? 2 : 1;
     }
-
+    
+    clearScreen();
+    printHeader();
+    printBoard(board);
+    if(winner == 1) {
+        cout << "\n" << player << " (X) venceu a partida!\n";
+        playerScore++;
+        printVictoryBanner(player, 'X');
+    } else if(winner == 2) {
+        cout << "\nA maquina (O) venceu a partida!\n";
+        machineScore++;
+        printVictoryBanner("Maquina", 'O');
+    } else {
+        cout << "\nEmpate!\n";
+    }
+    
+    cout << "\nPontuacao Atual: " << BLUE << player << " (X): " << playerScore << RESET 
+         << "  vs  " << MAGENTA << "Maquina" << " (O): " << machineScore << RESET << "\n";
+    waitForEnter();
 }
 
-int main(){
+// ===================
+// Menu Principal
+// ===================
 
-    menuInicial();
+void mainMenu() {
+    int choice;
+    while(true) {
+        clearScreen();
+        splashScreen();
+        printHeader();
+        cout << "1 - Jogar Multiplayer\n";
+        cout << "2 - Jogar Solo (vs. Maquina)\n";
+        cout << "3 - Sobre o jogo\n";
+        cout << "4 - Sair\n";
+        cout << "\nEscolha uma opcao: ";
+        cin >> choice;
+        
+        if(cin.fail()){
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            choice = 0;
+        }
+        
+        if(choice == 1) {
+            string player1, player2;
+            cout << "\nDigite o nome do Jogador 1 (X): ";
+            cin >> player1;
+            cout << "Digite o nome do Jogador 2 (O): ";
+            cin >> player2;
+            int score1 = 0, score2 = 0;
+            char playAgain;
+            do {
+                playGame(player1, player2, score1, score2);
+                cout << "\nDeseja jogar novamente? (s/n): ";
+                cin >> playAgain;
+            } while(playAgain == 's' || playAgain == 'S');
+        } else if(choice == 2) {
+            string player;
+            cout << "\nDigite o seu nome (Voce sera o X): ";
+            cin >> player;
+            int playerScore = 0, machineScore = 0;
+            char playAgain;
+            do {
+                playGameSolo(player, playerScore, machineScore);
+                cout << "\nDeseja jogar novamente? (s/n): ";
+                cin >> playAgain;
+            } while(playAgain == 's' || playAgain == 'S');
+        } else if(choice == 3) {
+            clearScreen();
+            printHeader();
+            cout << "Jogo da Velha desenvolvido em C++.\n";
+            cout << "Versao com modos Multiplayer e Solo (vs. Maquina).\n";
+            waitForEnter();
+        } else if(choice == 4) {
+            cout << "\nObrigado por jogar! Ate mais.\n";
+            break;
+        } else {
+            cout << "\nOpcao invalida. Tente novamente.\n";
+            waitForEnter();
+        }
+    }
+}
+
+int main() {
+    // Inicializa a semente para n√∫meros aleat√≥rios
+    srand(static_cast<unsigned int>(time(0)));
+    mainMenu();
     return 0;
 }

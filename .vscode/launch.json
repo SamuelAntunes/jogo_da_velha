@@ -8,8 +8,8 @@
       "args": [],
       "stopAtEntry": false,
       "externalConsole": true,
-      "cwd": "c:/Users/Samuc/Documents/meus-projevos/jogo_da_velha/main",
-      "program": "c:/Users/Samuc/Documents/meus-projevos/jogo_da_velha/main/build/Debug/outDebug",
+      "cwd": "d:/meus_ projetos/Repositorio/jogo_da_velha/main",
+      "program": "d:/meus_ projetos/Repositorio/jogo_da_velha/main/build/Debug/outDebug",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",
       "setupCommands": [
