@@ -166,7 +166,7 @@ void printVictoryBanner(const string &player, char symbol) {
 // Inteligência Artificial (Modo Solo)
 // ===================
 
-// Função auxiliar: testa se uma posição vazia pode levar à vitória para um dado símbolo
+// Testa se uma posição vazia pode levar à vitória para um dado símbolo
 bool testMove(char board[3][3], int row, int col, char symbol) {
     board[row][col] = symbol;
     int res = checkWinner(board);
@@ -176,7 +176,7 @@ bool testMove(char board[3][3], int row, int col, char symbol) {
     return false;
 }
 
-// Função que retorna a posição (1 a 9) escolhida pela máquina
+// Retorna a posição (1 a 9) escolhida pela máquina
 int getComputerMove(char board[3][3], int posMapping[9][2]) {
     // 1. Tenta encontrar um movimento vencedor (jogar com 'O')
     for (int pos = 1; pos <= 9; pos++) {
@@ -411,11 +411,13 @@ void mainMenu() {
         }
         
         if(choice == 1) {
+            // Limpa o buffer antes de usar getline
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
             string player1, player2;
             cout << "\nDigite o nome do Jogador 1 (X): ";
-            cin >> player1;
+            getline(cin, player1);
             cout << "Digite o nome do Jogador 2 (O): ";
-            cin >> player2;
+            getline(cin, player2);
             int score1 = 0, score2 = 0;
             char playAgain;
             do {
@@ -424,9 +426,11 @@ void mainMenu() {
                 cin >> playAgain;
             } while(playAgain == 's' || playAgain == 'S');
         } else if(choice == 2) {
+            // Limpa o buffer antes de usar getline
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
             string player;
             cout << "\nDigite o seu nome (Voce sera o X): ";
-            cin >> player;
+            getline(cin, player);
             int playerScore = 0, machineScore = 0;
             char playAgain;
             do {
